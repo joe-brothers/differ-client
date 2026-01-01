@@ -28,6 +28,7 @@ export class GameScene extends Container implements IScene {
   private gameArea: Container;
   private leftPanel: ImagePanel | null = null;
   private rightPanelContainer: Container;
+  private rightBackgroundSprite: Sprite | null = null;
   private rightMaskedSprite: MaskedDiffSprite | null = null;
   private rightMarkersContainer: Container;
   private rightHitArea: Container | null = null;
@@ -98,14 +99,10 @@ export class GameScene extends Container implements IScene {
     this.timer.start();
   }
 
+  // Images are already loaded by Game.ts before this scene is created
+  // This method is kept for compatibility but does nothing
   private async loadImages(): Promise<void> {
-    const state = gameState.getState();
-
-    for (const image of state.selectedImages) {
-      // Load both original and different images
-      await Assets.load(image.originalUrl);
-      await Assets.load(image.differentUrl);
-    }
+    // Images already loaded concurrently in Game.selectAndLoadImages()
   }
 
   private setupLayout(): void {
@@ -180,9 +177,10 @@ export class GameScene extends Container implements IScene {
   }
 
   private setupEventListeners(): void {
-    gameState.on("differenceFound", ({ total }) => {
+    gameState.on("differenceFound", ({ diffIndex, total }) => {
       this.progressDisplay.updateFoundCount(total);
-      this.updateMarkers();
+      // Add only the new marker with animation (don't recreate all)
+      this.addMarkerForDiff(diffIndex);
     });
 
     gameState.on("imageCompleted", () => {
@@ -251,8 +249,8 @@ export class GameScene extends Container implements IScene {
     this.rightPanelContainer.scale.set(this.imageScale);
 
     // Add original image as background on right side
-    const rightBackground = new Sprite(originalTexture);
-    this.rightPanelContainer.addChild(rightBackground);
+    this.rightBackgroundSprite = new Sprite(originalTexture);
+    this.rightPanelContainer.addChild(this.rightBackgroundSprite);
 
     // Create masked sprite for different image (overlaid on original)
     this.rightMaskedSprite = new MaskedDiffSprite(differentTexture);
@@ -326,30 +324,59 @@ export class GameScene extends Container implements IScene {
     const state = gameState.getState();
     if (state.inputDisabled) return;
 
-    // Show feedback
+    // Show feedback on both panels
     this.leftPanel?.showWrongClickFeedback();
+    this.showRightPanelWrongClickFeedback();
 
     // Disable input temporarily
     gameState.disableInputTemporarily(WRONG_CLICK_COOLDOWN_MS);
   }
 
+  private showRightPanelWrongClickFeedback(): void {
+    if (!this.rightBackgroundSprite) return;
+    this.rightBackgroundSprite.tint = 0xff8888;
+    setTimeout(() => {
+      if (this.rightBackgroundSprite) {
+        this.rightBackgroundSprite.tint = 0xffffff;
+      }
+    }, 200);
+  }
+
+  // Recreate all markers without animation (used when navigating between images)
   private updateMarkers(): void {
     const state = gameState.getState();
     const currentDiffs = state.selectedDifferences[state.currentImageIndex];
 
-    // Update left panel markers
+    // Update left panel markers (no animation)
     this.leftPanel?.updateMarkers();
 
-    // Update right panel markers
+    // Update right panel markers (no animation)
     this.rightMarkersContainer.removeChildren();
     for (const diff of currentDiffs) {
       if (diff.found) {
         const centerX = diff.rect.start_point.x + diff.rect.width / 2;
         const centerY = diff.rect.start_point.y + diff.rect.height / 2;
-        const marker = new DiffMarker(centerX, centerY);
+        const marker = new DiffMarker(centerX, centerY, undefined, false);
         this.rightMarkersContainer.addChild(marker);
       }
     }
+  }
+
+  // Add a single marker with animation (used when finding a new difference)
+  private addMarkerForDiff(diffIndex: number): void {
+    const state = gameState.getState();
+    const diff = state.selectedDifferences[state.currentImageIndex][diffIndex];
+    if (!diff?.found) return;
+
+    const centerX = diff.rect.start_point.x + diff.rect.width / 2;
+    const centerY = diff.rect.start_point.y + diff.rect.height / 2;
+
+    // Add animated marker to left panel
+    this.leftPanel?.addMarkerForDiff(diffIndex);
+
+    // Add animated marker to right panel
+    const marker = new DiffMarker(centerX, centerY, undefined, true);
+    this.rightMarkersContainer.addChild(marker);
   }
 
   private setInputEnabled(enabled: boolean): void {
@@ -358,7 +385,7 @@ export class GameScene extends Container implements IScene {
     if (this.rightHitArea) {
       for (const child of this.rightHitArea.children) {
         child.eventMode = enabled ? "static" : "none";
-        child.cursor = enabled ? "pointer" : "default";
+        child.cursor = enabled ? "default" : "not-allowed";
       }
     }
   }

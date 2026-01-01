@@ -1,4 +1,4 @@
-import { Application } from "pixi.js";
+import { Application, Assets } from "pixi.js";
 import { SceneManager } from "./SceneManager";
 import { gameState } from "../managers/GameStateManager";
 import { MainMenuScene } from "../scenes/MainMenuScene";
@@ -38,8 +38,8 @@ export class Game {
   }
 
   async startGame(): Promise<void> {
-    // Select random images and differences
-    const selectedImages = this.selectRandomImages();
+    // Select and load images concurrently, with error handling
+    const selectedImages = await this.selectAndLoadImages();
     const selectedDifferences = this.selectRandomDifferences(selectedImages);
 
     // Initialize game state
@@ -49,26 +49,79 @@ export class Game {
     await this.sceneManager.switchTo(GameScene);
   }
 
-  private selectRandomImages(): ImageData[] {
-    // Get available image IDs (000001 to 000010)
-    const availableIds: string[] = [];
-    for (let i = 1; i <= TOTAL_AVAILABLE_IMAGES; i++) {
-      const id = i.toString().padStart(6, "0");
-      if (diffData[id]) {
-        availableIds.push(id);
+  private async selectAndLoadImages(): Promise<ImageData[]> {
+    const allAvailableIds = this.getAllAvailableImageIds();
+    const shuffledIds = this.shuffleArray(allAvailableIds);
+
+    const loadedImages: ImageData[] = [];
+    let candidateIndex = 0;
+
+    // Keep trying until we have enough images
+    while (
+      loadedImages.length < IMAGES_PER_GAME &&
+      candidateIndex < shuffledIds.length
+    ) {
+      // Take a batch of candidates
+      const batchSize = Math.min(
+        IMAGES_PER_GAME - loadedImages.length + 2, // Extra buffer for potential failures
+        shuffledIds.length - candidateIndex,
+      );
+      const batch = shuffledIds.slice(
+        candidateIndex,
+        candidateIndex + batchSize,
+      );
+      candidateIndex += batchSize;
+
+      // Create image data for the batch
+      const candidates = batch.map((id) => ({
+        id,
+        originalUrl: `${CDN_BASE}${id}.png`,
+        differentUrl: `${CDN_BASE}${id}_d.png`,
+        diffRects: diffData[id].diff_rects,
+      }));
+
+      // Load all images in parallel
+      const loadPromises = candidates.map((img) =>
+        this.loadImagePair(img)
+          .then(() => img)
+          .catch(() => null),
+      );
+
+      const results = await Promise.all(loadPromises);
+
+      // Add successful loads
+      for (const result of results) {
+        if (result !== null && loadedImages.length < IMAGES_PER_GAME) {
+          loadedImages.push(result);
+        }
       }
     }
 
-    // Shuffle and pick first IMAGES_PER_GAME
-    const shuffled = this.shuffleArray(availableIds);
-    const selected = shuffled.slice(0, IMAGES_PER_GAME);
+    if (loadedImages.length < IMAGES_PER_GAME) {
+      console.warn(
+        `Only loaded ${loadedImages.length}/${IMAGES_PER_GAME} images`,
+      );
+    }
 
-    return selected.map((id) => ({
-      id,
-      originalUrl: `${CDN_BASE}${id}.png`,
-      differentUrl: `${CDN_BASE}${id}_d.png`,
-      diffRects: diffData[id].diff_rects,
-    }));
+    return loadedImages;
+  }
+
+  private async loadImagePair(image: ImageData): Promise<void> {
+    await Promise.all([
+      Assets.load(image.originalUrl),
+      Assets.load(image.differentUrl),
+    ]);
+  }
+
+  private getAllAvailableImageIds(): string[] {
+    const ids: string[] = [];
+    for (let i = 1; i <= TOTAL_AVAILABLE_IMAGES; i++) {
+      const id = i.toString().padStart(6, "0");
+      if (diffData[id]) {
+        ids.push(id);
+      }
+    }
+    return ids;
   }
 
   private selectRandomDifferences(images: ImageData[]): SelectedDifference[][] {

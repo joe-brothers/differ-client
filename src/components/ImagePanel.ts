@@ -81,22 +81,36 @@ export class ImagePanel extends Container {
     );
   }
 
+  // Recreate all markers without animation (used when navigating between images)
   updateMarkers(): void {
     this.markersContainer.removeChildren();
 
     for (const diff of this.differences) {
       if (diff.found) {
-        // Calculate center of the diff rect
         const centerX = diff.rect.start_point.x + diff.rect.width / 2;
         const centerY = diff.rect.start_point.y + diff.rect.height / 2;
-        const marker = new DiffMarker(centerX, centerY);
+        // No animation for pre-existing markers
+        const marker = new DiffMarker(centerX, centerY, undefined, false);
         this.markersContainer.addChild(marker);
       }
     }
   }
 
+  // Add a single marker with animation (used when finding a new difference)
+  addMarkerForDiff(diffIndex: number): void {
+    const diff = this.differences[diffIndex];
+    if (!diff?.found) return;
+
+    const centerX = diff.rect.start_point.x + diff.rect.width / 2;
+    const centerY = diff.rect.start_point.y + diff.rect.height / 2;
+    // Animate the new marker
+    const marker = new DiffMarker(centerX, centerY, undefined, true);
+    this.markersContainer.addChild(marker);
+  }
+
   setInputEnabled(enabled: boolean): void {
     this.clickArea.eventMode = enabled ? "static" : "none";
+    this.clickArea.cursor = enabled ? "default" : "not-allowed";
   }
 
   showWrongClickFeedback(): void {

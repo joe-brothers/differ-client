@@ -2,7 +2,12 @@ import { Graphics } from "pixi.js";
 import { MARKER_RADIUS, MARKER_COLOR, MARKER_STROKE_WIDTH } from "../constants";
 
 export class DiffMarker extends Graphics {
-  constructor(x: number, y: number, radius: number = MARKER_RADIUS) {
+  constructor(
+    x: number,
+    y: number,
+    radius: number = MARKER_RADIUS,
+    animate: boolean = true,
+  ) {
     super();
 
     // Draw red circle outline
@@ -11,8 +16,10 @@ export class DiffMarker extends Graphics {
 
     this.position.set(x, y);
 
-    // Play appear animation
-    this.playAppearAnimation();
+    // Play appear animation only if requested
+    if (animate) {
+      this.playAppearAnimation();
+    }
   }
 
   private playAppearAnimation(): void {
