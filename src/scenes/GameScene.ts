@@ -1,4 +1,4 @@
-import { Application, Container, Assets, Graphics } from "pixi.js";
+import { Application, Container, Assets, Graphics, Sprite } from "pixi.js";
 import type { IScene, SelectedDifference } from "../types";
 import {
   IMAGE_WIDTH,
@@ -238,7 +238,11 @@ export class GameScene extends Container implements IScene {
     );
     this.rightPanelContainer.scale.set(this.imageScale);
 
-    // Create masked sprite for different image
+    // Add original image as background on right side
+    const rightBackground = new Sprite(originalTexture);
+    this.rightPanelContainer.addChild(rightBackground);
+
+    // Create masked sprite for different image (overlaid on original)
     this.rightMaskedSprite = new MaskedDiffSprite(differentTexture);
     this.rightMaskedSprite.setDifferences(currentDiffs);
     this.rightPanelContainer.addChild(this.rightMaskedSprite);
@@ -247,7 +251,7 @@ export class GameScene extends Container implements IScene {
     this.rightMarkersContainer = new Container();
     this.rightPanelContainer.addChild(this.rightMarkersContainer);
 
-    // Create hit area for right panel (same click handling)
+    // Create hit area for right panel (covers entire image, uniform cursor)
     this.rightHitArea = this.createRightHitArea(currentDiffs);
     this.rightPanelContainer.addChild(this.rightHitArea);
 
@@ -260,29 +264,38 @@ export class GameScene extends Container implements IScene {
   private createRightHitArea(currentDiffs: SelectedDifference[]): Container {
     const hitContainer = new Container();
 
-    // Create clickable areas only for difference regions
-    for (let i = 0; i < currentDiffs.length; i++) {
-      const diff = currentDiffs[i];
-      const hitArea = new Graphics();
-      hitArea.rect(
-        diff.rect.start_point.x,
-        diff.rect.start_point.y,
-        diff.rect.width,
-        diff.rect.height,
-      );
-      hitArea.fill({ color: 0xffffff, alpha: 0 });
-      hitArea.eventMode = "static";
-      hitArea.cursor = "pointer";
+    // Create a single hit area covering the entire image (uniform cursor)
+    const fullHitArea = new Graphics();
+    fullHitArea.rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+    fullHitArea.fill({ color: 0xffffff, alpha: 0 });
+    fullHitArea.eventMode = "static";
+    fullHitArea.cursor = "default"; // Same cursor everywhere
 
-      const diffIndex = i;
-      hitArea.on("pointerdown", () => {
-        if (!diff.found && !gameState.getState().inputDisabled) {
-          this.handleDiffFound(diffIndex);
+    fullHitArea.on("pointerdown", (event) => {
+      if (gameState.getState().inputDisabled) return;
+
+      const localPos = event.getLocalPosition(fullHitArea);
+
+      // Check if click is within any unfound diff rectangle
+      for (let i = 0; i < currentDiffs.length; i++) {
+        const diff = currentDiffs[i];
+        if (
+          !diff.found &&
+          localPos.x >= diff.rect.start_point.x &&
+          localPos.x <= diff.rect.start_point.x + diff.rect.width &&
+          localPos.y >= diff.rect.start_point.y &&
+          localPos.y <= diff.rect.start_point.y + diff.rect.height
+        ) {
+          this.handleDiffFound(i);
+          return;
         }
-      });
+      }
 
-      hitContainer.addChild(hitArea);
-    }
+      // Wrong click
+      this.handleWrongClick();
+    });
+
+    hitContainer.addChild(fullHitArea);
 
     return hitContainer;
   }

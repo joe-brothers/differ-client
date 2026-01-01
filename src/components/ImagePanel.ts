@@ -33,7 +33,7 @@ export class ImagePanel extends Container {
     this.clickArea.rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
     this.clickArea.fill({ color: 0xffffff, alpha: 0 });
     this.clickArea.eventMode = "static";
-    this.clickArea.cursor = "pointer";
+    this.clickArea.cursor = "default"; // Uniform cursor, no hints
     this.clickArea.on("pointerdown", this.handleClick.bind(this));
     this.addChild(this.clickArea);
   }
@@ -97,7 +97,6 @@ export class ImagePanel extends Container {
 
   setInputEnabled(enabled: boolean): void {
     this.clickArea.eventMode = enabled ? "static" : "none";
-    this.clickArea.cursor = enabled ? "pointer" : "default";
   }
 
   showWrongClickFeedback(): void {
