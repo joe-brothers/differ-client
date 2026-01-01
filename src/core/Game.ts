@@ -3,6 +3,7 @@ import { SceneManager } from "./SceneManager";
 import { gameState } from "../managers/GameStateManager";
 import { MainMenuScene } from "../scenes/MainMenuScene";
 import { GameScene } from "../scenes/GameScene";
+import { LoadingScene } from "../scenes/LoadingScene";
 import type { ImageData, SelectedDifference, ImageDiffData } from "../types";
 import {
   CDN_BASE,
@@ -38,6 +39,9 @@ export class Game {
   }
 
   async startGame(): Promise<void> {
+    // Show loading screen first
+    await this.sceneManager.switchTo(LoadingScene);
+
     // Select and load images concurrently, with error handling
     const selectedImages = await this.selectAndLoadImages();
     const selectedDifferences = this.selectRandomDifferences(selectedImages);
