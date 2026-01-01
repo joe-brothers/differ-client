@@ -19,6 +19,7 @@ import { ProgressDisplay } from "../components/ProgressDisplay";
 import { MenuOverlay } from "../components/MenuOverlay";
 import { MenuIcon } from "../components/MenuIcon";
 import { CelebrationEffect } from "../components/CelebrationEffect";
+import { GameCompleteScreen } from "../components/GameCompleteScreen";
 
 export class GameScene extends Container implements IScene {
   private app: Application;
@@ -42,6 +43,7 @@ export class GameScene extends Container implements IScene {
   private overlayLayer: Container;
   private menuOverlay: MenuOverlay;
   private celebrationEffect: CelebrationEffect;
+  private gameCompleteScreen: GameCompleteScreen;
 
   // Layout
   private imageScale: number = 1;
@@ -64,6 +66,10 @@ export class GameScene extends Container implements IScene {
     this.menuIcon = new MenuIcon();
     this.menuOverlay = new MenuOverlay(app.screen.width, app.screen.height);
     this.celebrationEffect = new CelebrationEffect();
+    this.gameCompleteScreen = new GameCompleteScreen(
+      app.screen.width,
+      app.screen.height,
+    );
 
     // Add to stage
     this.addChild(this.gameArea, this.uiLayer, this.overlayLayer);
@@ -164,8 +170,13 @@ export class GameScene extends Container implements IScene {
       () => this.resumeGame(),
       () => game.showMainMenu(),
     );
+    this.gameCompleteScreen.setCallbacks(
+      () => game.startGame(), // Play Again
+      () => game.showMainMenu(), // Main Menu
+    );
     this.overlayLayer.addChild(this.menuOverlay);
     this.overlayLayer.addChild(this.celebrationEffect);
+    this.overlayLayer.addChild(this.gameCompleteScreen);
   }
 
   private setupEventListeners(): void {
@@ -180,7 +191,8 @@ export class GameScene extends Container implements IScene {
 
     gameState.on("gameCompleted", () => {
       this.timer.pause();
-      // Could show a completion screen here
+      const state = gameState.getState();
+      this.gameCompleteScreen.show(state.elapsedTime);
     });
 
     gameState.on("imageChanged", (index: number) => {
