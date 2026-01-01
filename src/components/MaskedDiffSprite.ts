@@ -42,4 +42,8 @@ export class MaskedDiffSprite extends Container {
     }
     this.maskGraphics.fill(0xffffff);
   }
+
+  setTint(tint: number): void {
+    this.sprite.tint = tint;
+  }
 }

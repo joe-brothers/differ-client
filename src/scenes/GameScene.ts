@@ -333,11 +333,20 @@ export class GameScene extends Container implements IScene {
   }
 
   private showRightPanelWrongClickFeedback(): void {
-    if (!this.rightBackgroundSprite) return;
-    this.rightBackgroundSprite.tint = 0xff8888;
+    // Apply red tint to both background and masked diff areas
+    if (this.rightBackgroundSprite) {
+      this.rightBackgroundSprite.tint = 0xff8888;
+    }
+    if (this.rightMaskedSprite) {
+      this.rightMaskedSprite.setTint(0xff8888);
+    }
+
     setTimeout(() => {
       if (this.rightBackgroundSprite) {
         this.rightBackgroundSprite.tint = 0xffffff;
+      }
+      if (this.rightMaskedSprite) {
+        this.rightMaskedSprite.setTint(0xffffff);
       }
     }, 200);
   }
