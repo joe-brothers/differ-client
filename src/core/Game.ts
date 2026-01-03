@@ -12,6 +12,7 @@ import {
   DIFFS_PER_IMAGE,
 } from "../constants";
 import diffDataJson from "../tmp_info.json";
+import { shuffle } from "es-toolkit";
 
 const diffData = diffDataJson as Record<string, ImageDiffData>;
 
@@ -55,7 +56,7 @@ export class Game {
 
   private async selectAndLoadImages(): Promise<ImageData[]> {
     const allAvailableIds = this.getAllAvailableImageIds();
-    const shuffledIds = this.shuffleArray(allAvailableIds);
+    const shuffledIds = shuffle(allAvailableIds);
 
     const loadedImages: ImageData[] = [];
     let candidateIndex = 0;
@@ -133,7 +134,7 @@ export class Game {
       // Each image typically has 10 diffs, randomly select 5
       const totalDiffs = image.diffRects.length;
       const indices = Array.from({ length: totalDiffs }, (_, i) => i);
-      const shuffledIndices = this.shuffleArray(indices);
+      const shuffledIndices = shuffle(indices);
       const selectedIndices = shuffledIndices.slice(0, DIFFS_PER_IMAGE);
 
       return selectedIndices.map((origDiffIndex, localIndex) => ({
@@ -143,15 +144,6 @@ export class Game {
         found: false,
       }));
     });
-  }
-
-  private shuffleArray<T>(array: T[]): T[] {
-    const result = [...array];
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
   }
 }
 
