@@ -29,9 +29,9 @@ export class Game {
       this.sceneManager.update(ticker.deltaMS);
     });
 
-    // Set up resize listener
-    window.addEventListener("resize", () => {
-      this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
+    // Set up resize listener using Pixi's renderer resize event
+    this.app.renderer.on("resize", (width: number, height: number) => {
+      this.sceneManager.resize(width, height);
     });
   }
 
