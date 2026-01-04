@@ -1,75 +1,45 @@
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Assets, Container, Sprite } from "pixi.js";
 import type { IScene } from "../types";
-import { COLORS } from "../constants";
+
+const SPINNER_STEPS = 12;
+const ROTATION_INTERVAL_MS = 1000 / SPINNER_STEPS; // ~83.33ms per step
+const STEP_ANGLE = (Math.PI * 2) / SPINNER_STEPS; // 30 degrees in radians
+const SPINNER_SCALE = 0.15;
 
 export class LoadingScene extends Container implements IScene {
   private app: Application;
-  private spinner: Graphics;
-  private spinnerAngle = 0;
+  private spinner: Sprite | null = null;
+  private elapsedTime = 0;
+  private currentStep = 0;
 
   constructor(app: Application) {
     super();
     this.app = app;
-    this.spinner = new Graphics();
   }
 
   async init(): Promise<void> {
-    this.createLoadingText();
-    this.createSpinner();
-  }
-
-  private createLoadingText(): void {
-    const text = new Text({
-      text: "Loading...",
-      style: {
-        fontFamily: "Arial, sans-serif",
-        fontSize: 32,
-        fontWeight: "bold",
-        fill: COLORS.text,
-      },
-    });
-    text.anchor.set(0.5);
-    text.position.set(
-      this.app.screen.width / 2,
-      this.app.screen.height / 2 - 60,
-    );
-    this.addChild(text);
-  }
-
-  private createSpinner(): void {
+    const texture = await Assets.load("/assets/spinner.png");
+    this.spinner = new Sprite(texture);
+    this.spinner.anchor.set(0.5);
+    this.spinner.scale.set(SPINNER_SCALE);
     this.spinner.position.set(
       this.app.screen.width / 2,
-      this.app.screen.height / 2 + 20,
+      this.app.screen.height / 2,
     );
-    this.drawSpinnerArc();
     this.addChild(this.spinner);
   }
 
-  private drawSpinnerArc(): void {
-    const radius = 30;
-    const lineWidth = 4;
-
-    this.spinner.clear();
-
-    // Background circle (dim)
-    this.spinner.circle(0, 0, radius);
-    this.spinner.stroke({ width: lineWidth, color: 0x333355 });
-
-    // Spinning arc
-    this.spinner.arc(
-      0,
-      0,
-      radius,
-      this.spinnerAngle,
-      this.spinnerAngle + Math.PI * 1.2,
-    );
-    this.spinner.stroke({ width: lineWidth, color: COLORS.primary });
-  }
-
   update(deltaTime: number): void {
-    // Rotate the spinner
-    this.spinnerAngle += deltaTime * 0.005;
-    this.drawSpinnerArc();
+    if (!this.spinner) return;
+
+    this.elapsedTime += deltaTime;
+
+    // Check if it's time for the next step
+    const newStep = Math.floor(this.elapsedTime / ROTATION_INTERVAL_MS);
+    if (newStep !== this.currentStep) {
+      this.currentStep = newStep;
+      this.spinner.rotation = (this.currentStep % SPINNER_STEPS) * STEP_ANGLE;
+    }
   }
 
   destroy(): void {

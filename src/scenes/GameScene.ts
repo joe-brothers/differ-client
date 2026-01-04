@@ -484,11 +484,15 @@ export class GameScene extends Container implements IScene {
 
   private showPauseMenu(): void {
     gameState.pause();
+    this.createPlaceholders();
+    this.gameArea.visible = false;
     this.menuOverlay.show();
   }
 
   private resumeGame(): void {
     gameState.resume();
+    this.placeholderContainer.removeChildren();
+    this.gameArea.visible = true;
     this.menuOverlay.hide();
   }
 
