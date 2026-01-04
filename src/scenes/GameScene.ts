@@ -20,6 +20,7 @@ import { MenuOverlay } from "../components/MenuOverlay";
 import { MenuIcon } from "../components/MenuIcon";
 import { CelebrationEffect } from "../components/CelebrationEffect";
 import { GameCompleteScreen } from "../components/GameCompleteScreen";
+import { CountdownOverlay } from "../components/CountdownOverlay";
 
 export class GameScene extends Container implements IScene {
   private app: Application;
@@ -42,9 +43,13 @@ export class GameScene extends Container implements IScene {
 
   // Overlays
   private overlayLayer: Container;
+  private countdownOverlay: CountdownOverlay;
   private menuOverlay: MenuOverlay;
   private celebrationEffect: CelebrationEffect;
   private gameCompleteScreen: GameCompleteScreen;
+
+  // Placeholder
+  private placeholderContainer: Container;
 
   // Layout
   private imageScale: number = 1;
@@ -59,12 +64,17 @@ export class GameScene extends Container implements IScene {
     this.rightMarkersContainer = new Container();
     this.uiLayer = new Container();
     this.overlayLayer = new Container();
+    this.placeholderContainer = new Container();
 
     // Create UI components
     this.timer = new Timer();
     this.navButtons = new NavButtons();
     this.progressDisplay = new ProgressDisplay();
     this.menuIcon = new MenuIcon();
+    this.countdownOverlay = new CountdownOverlay(
+      app.screen.width,
+      app.screen.height,
+    );
     this.menuOverlay = new MenuOverlay(app.screen.width, app.screen.height);
     this.celebrationEffect = new CelebrationEffect();
     this.gameCompleteScreen = new GameCompleteScreen(
@@ -73,7 +83,12 @@ export class GameScene extends Container implements IScene {
     );
 
     // Add to stage
-    this.addChild(this.gameArea, this.uiLayer, this.overlayLayer);
+    this.addChild(
+      this.placeholderContainer,
+      this.gameArea,
+      this.uiLayer,
+      this.overlayLayer,
+    );
   }
 
   async init(): Promise<void> {
@@ -92,8 +107,19 @@ export class GameScene extends Container implements IScene {
     // Setup event listeners
     this.setupEventListeners();
 
-    // Load first image
+    // Show placeholders and hide game area during countdown
+    this.createPlaceholders();
+    this.gameArea.visible = false;
+
+    // Load first image (hidden)
     this.loadCurrentImage();
+
+    // Show countdown before starting the game
+    await this.countdownOverlay.play();
+
+    // Remove placeholders and show game area
+    this.placeholderContainer.removeChildren();
+    this.gameArea.visible = true;
 
     // Start timer
     this.timer.start();
@@ -127,6 +153,34 @@ export class GameScene extends Container implements IScene {
     const startY = (screenHeight - scaledHeight) / 2 + 20; // Offset for top UI
 
     this.gameArea.position.set(startX, startY);
+  }
+
+  private createPlaceholders(): void {
+    const scaledWidth = IMAGE_WIDTH * this.imageScale;
+    const scaledHeight = IMAGE_HEIGHT * this.imageScale;
+
+    // Position placeholders at same location as game area
+    this.placeholderContainer.position.copyFrom(this.gameArea.position);
+
+    // Left placeholder
+    const leftPlaceholder = new Graphics();
+    leftPlaceholder.roundRect(0, 0, scaledWidth, scaledHeight, 8);
+    leftPlaceholder.fill({ color: 0x2a2a4e });
+    leftPlaceholder.stroke({ width: 2, color: 0x4a4a6e });
+    this.placeholderContainer.addChild(leftPlaceholder);
+
+    // Right placeholder
+    const rightPlaceholder = new Graphics();
+    rightPlaceholder.roundRect(
+      scaledWidth + IMAGE_GAP,
+      0,
+      scaledWidth,
+      scaledHeight,
+      8,
+    );
+    rightPlaceholder.fill({ color: 0x2a2a4e });
+    rightPlaceholder.stroke({ width: 2, color: 0x4a4a6e });
+    this.placeholderContainer.addChild(rightPlaceholder);
   }
 
   private setupUI(): void {
@@ -171,6 +225,7 @@ export class GameScene extends Container implements IScene {
       () => game.startGame(), // Play Again
       () => game.showMainMenu(), // Main Menu
     );
+    this.overlayLayer.addChild(this.countdownOverlay);
     this.overlayLayer.addChild(this.menuOverlay);
     this.overlayLayer.addChild(this.celebrationEffect);
     this.overlayLayer.addChild(this.gameCompleteScreen);
