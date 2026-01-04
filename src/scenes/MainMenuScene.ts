@@ -5,6 +5,8 @@ import { game } from "../core/Game";
 
 export class MainMenuScene extends Container implements IScene {
   private app: Application;
+  private title: Text | null = null;
+  private button: Container | null = null;
 
   constructor(app: Application) {
     super();
@@ -17,7 +19,7 @@ export class MainMenuScene extends Container implements IScene {
   }
 
   private createTitle(): void {
-    const title = new Text({
+    this.title = new Text({
       text: "Find the Difference",
       style: {
         fontFamily: "Arial, sans-serif",
@@ -26,9 +28,12 @@ export class MainMenuScene extends Container implements IScene {
         fill: COLORS.text,
       },
     });
-    title.anchor.set(0.5);
-    title.position.set(this.app.screen.width / 2, this.app.screen.height / 3);
-    this.addChild(title);
+    this.title.anchor.set(0.5);
+    this.title.position.set(
+      this.app.screen.width / 2,
+      this.app.screen.height / 3,
+    );
+    this.addChild(this.title);
   }
 
   private createSprintButton(): void {
@@ -38,8 +43,8 @@ export class MainMenuScene extends Container implements IScene {
     const buttonY = this.app.screen.height / 2;
 
     // Button container
-    const button = new Container();
-    button.position.set(buttonX, buttonY);
+    this.button = new Container();
+    this.button.position.set(buttonX, buttonY);
 
     // Button background
     const bg = new Graphics();
@@ -64,14 +69,14 @@ export class MainMenuScene extends Container implements IScene {
     });
     text.anchor.set(0.5);
 
-    button.addChild(bg, text);
+    this.button.addChild(bg, text);
 
     // Make interactive
-    button.eventMode = "static";
-    button.cursor = "pointer";
+    this.button.eventMode = "static";
+    this.button.cursor = "pointer";
 
     // Hover effects
-    button.on("pointerover", () => {
+    this.button.on("pointerover", () => {
       bg.clear();
       bg.roundRect(
         -buttonWidth / 2,
@@ -83,7 +88,7 @@ export class MainMenuScene extends Container implements IScene {
       bg.fill(COLORS.primaryHover);
     });
 
-    button.on("pointerout", () => {
+    this.button.on("pointerout", () => {
       bg.clear();
       bg.roundRect(
         -buttonWidth / 2,
@@ -96,15 +101,24 @@ export class MainMenuScene extends Container implements IScene {
     });
 
     // Click handler
-    button.on("pointerdown", () => {
+    this.button.on("pointerdown", () => {
       game.startGame();
     });
 
-    this.addChild(button);
+    this.addChild(this.button);
   }
 
   update(): void {
     // No updates needed for menu
+  }
+
+  resize(width: number, height: number): void {
+    if (this.title) {
+      this.title.position.set(width / 2, height / 3);
+    }
+    if (this.button) {
+      this.button.position.set(width / 2, height / 2);
+    }
   }
 
   destroy(): void {

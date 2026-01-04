@@ -36,6 +36,12 @@ export class SceneManager {
     }
   }
 
+  resize(width: number, height: number): void {
+    if (this.currentScene?.resize) {
+      this.currentScene.resize(width, height);
+    }
+  }
+
   getCurrentScene(): IScene | null {
     return this.currentScene;
   }

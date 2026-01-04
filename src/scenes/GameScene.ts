@@ -504,6 +504,32 @@ export class GameScene extends Container implements IScene {
     }
   }
 
+  resize(width: number, height: number): void {
+    // Recalculate layout
+    this.setupLayout();
+
+    // Update UI positions
+    this.progressDisplay.position.set(width / 2 - 40, UI_PADDING);
+    this.menuIcon.position.set(width - UI_PADDING - 44, UI_PADDING);
+    this.navButtons.position.set(width / 2 - 55, height - UI_PADDING - 50);
+
+    // Update overlays
+    this.countdownOverlay.resize(width, height);
+    this.menuOverlay.resize(width, height);
+    this.gameCompleteScreen.resize(width, height);
+
+    // Update placeholders if visible
+    if (this.placeholderContainer.children.length > 0) {
+      this.placeholderContainer.removeChildren();
+      this.createPlaceholders();
+    }
+
+    // Reload current image with new scale
+    if (this.gameArea.visible) {
+      this.loadCurrentImage();
+    }
+  }
+
   destroy(): void {
     // Remove event listeners
     gameState.removeAllListeners();

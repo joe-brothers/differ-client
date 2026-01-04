@@ -42,6 +42,12 @@ export class LoadingScene extends Container implements IScene {
     }
   }
 
+  resize(width: number, height: number): void {
+    if (this.spinner) {
+      this.spinner.position.set(width / 2, height / 2);
+    }
+  }
+
   destroy(): void {
     this.removeAllListeners();
     super.destroy({ children: true });

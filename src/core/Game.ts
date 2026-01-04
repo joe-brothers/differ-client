@@ -28,6 +28,11 @@ export class Game {
     this.app.ticker.add((ticker) => {
       this.sceneManager.update(ticker.deltaMS);
     });
+
+    // Set up resize listener
+    window.addEventListener("resize", () => {
+      this.sceneManager.resize(this.app.screen.width, this.app.screen.height);
+    });
   }
 
   async start(): Promise<void> {

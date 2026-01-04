@@ -45,4 +45,5 @@ export interface IScene {
   init(): Promise<void>;
   update(deltaTime: number): void;
   destroy(): void;
+  resize?(width: number, height: number): void;
 }
